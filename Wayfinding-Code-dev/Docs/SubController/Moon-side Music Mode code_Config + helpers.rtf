@@ -1,0 +1,199 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 // ================== MUSIC MODE CONFIG (EASY TO EDIT) ==================\
+\
+// Number of cells we are treating for Music Mode.\
+// For Josh's full moon this is 80 (H0/H1, P0/1/3/4/5, C0-7).\
+// Adjust if your actual cell count is different.\
+const uint8_t NUM_CELLS = 80;\
+\
+// LED brightness in percent\
+const uint8_t MUSIC_BASE_BRIGHTNESS_PERCENT = 20; // idle brightness\
+const uint8_t MUSIC_MAX_BRIGHTNESS_PERCENT  = 85; // cap while pressing\
+\
+// Per-channel colors (R,G,B)\
+// Channels 1, 2, 3: instruments; Channel 10: drums (BLUE as requested)\
+const uint8_t MUSIC_CH1_COLOR[3]  = \{255,   0,   0\}; // red\
+const uint8_t MUSIC_CH2_COLOR[3]  = \{  0, 255,   0\}; // green\
+const uint8_t MUSIC_CH3_COLOR[3]  = \{255, 255,   0\}; // yellow\
+const uint8_t MUSIC_CH10_COLOR[3] = \{  0,   0, 255\}; // blue (drums)\
+\
+// How often to poll pressure in Music Mode (ms).\
+// You can later tie this to globalConfig.sampleTime if you like.\
+const uint32_t MUSIC_SAMPLE_INTERVAL_MS = 10;\
+\
+// How long drum LEDs take to fade out (ms)\
+const uint32_t MUSIC_DRUM_FADE_TIME_MS = 1500; // ~1.5 seconds\
+\
+// Default velocities (used if pressure comes through as 0)\
+const uint8_t MUSIC_DEFAULT_MELODIC_VELOCITY = 90;\
+const uint8_t MUSIC_DEFAULT_DRUM_VELOCITY    = 110;\
+\
+// ================== MIDI MAPPING (from Josh's spreadsheet) ==================\
+//\
+// cellIndex 0..79 corresponds to:\
+// H0: P0,1,3,4,5 each with C0..C7  (indices 0..39)\
+// H1: P0,1,3,4,5 each with C0..C7  (indices 40..79)\
+//\
+// NOTE: this is purely a MUSIC mapping; I2C addresses can be independent.\
+\
+const uint8_t cellMidiChannel[NUM_CELLS] = \{\
+  2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 10, 10, 2, 10, 10,\
+  3, 10, 10, 3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 3, 1, 1,\
+  1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1,\
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1,\
+  3, 3, 3, 3, 3, 3, 3, 10, 10, 10, 10, 10, 10, 10, 2, 10\
+\};\
+\
+const uint8_t cellMidiNote[NUM_CELLS] = \{\
+  43, 105, 96, 38, 45, 50, 52, 40, 48, 47, 42, 43, 46, 54, 48, 44,\
+  91, 47, 45, 86, 93, 98, 100, 88, 96, 95, 90, 88, 98, 102, 107, 90,\
+  102, 100, 91, 93, 103, 108, 110, 95, 31, 33, 36, 35, 30, 26, 24, 86,\
+  72, 74, 84, 83, 71, 64, 62, 81, 67, 69, 79, 78, 66, 60, 76, 76,\
+  79, 81, 84, 83, 78, 74, 72, 42, 37, 38, 41, 40, 36, 35, 28, 39\
+\};\
+\
+// ================== MUSIC MODE STATE ==================\
+\
+enum NoteAction : uint8_t \{\
+  NOTE_PRESS   = 0,\
+  NOTE_RELEASE = 1\
+\};\
+\
+struct MoonNoteEvent \{\
+  uint8_t cellIndex;  // 0-79\
+  uint8_t action;     // NoteAction\
+  uint8_t pressure;   // 0-127, used as MIDI velocity\
+\};\
+\
+// Per-cell runtime state\
+bool     musicCellPressed[NUM_CELLS];\
+uint8_t  musicCellLastVelocity[NUM_CELLS];\
+uint32_t musicCellLastPressMillis[NUM_CELLS];\
+\
+// For drum LED fade\
+bool     musicDrumFading[NUM_CELLS];\
+uint32_t musicDrumFadeStartMillis[NUM_CELLS];\
+\
+uint32_t lastMusicSampleMillis = 0;\
+\
+// ================== I2C ADDRESS MAPPING PLACEHOLDER ==================\
+//\
+// This array should map each cellIndex -> the I2C address of its sub-controller.\
+// Scott/Garnet can fill this with the right values or compute it from hemisphere/panel/cell.\
+//\
+// For now, leave as 0xFF to make it obvious it's a TODO.\
+//\
+// Example (NOT REAL):\
+//   cellAddresses[0] = cellToAddress(0, 0, 0);\
+//   cellAddresses[1] = cellToAddress(0, 0, 1);\
+//   ...\
+//\
+uint8_t cellAddresses[NUM_CELLS];\
+\
+// ================== HELPER FUNCTIONS ==================\
+\
+// Helper to send a NoteEvent to the Moth (to implement with ESP-NOW or other link).\
+// Scott: implement this to actually call esp_now_send() with the Moth's MAC.\
+void sendNoteEventToMoth(const MoonNoteEvent &evt) \{\
+  // TODO: Implement with ESP-NOW\
+  // For debugging you can start with:\
+  // consolePrintf("MUSIC EVT: cell=%u action=%u vel=%u\\n",\
+  //               evt.cellIndex, evt.action, evt.pressure);\
+\}\
+\
+// Scale a raw pressure (0-255-ish) to a MIDI velocity (0-127).\
+// Uses globalConfig.pressThreshold and globalConfig.maxThreshold.\
+uint8_t scalePressureToVelocity(uint8_t pressure) \{\
+  uint8_t pressThr = globalConfig.pressThreshold;\
+  uint8_t maxThr   = globalConfig.maxThreshold; // upper clamp\
+\
+  if (pressure <= pressThr) return 0;\
+  if (pressure >= maxThr)   pressure = maxThr;\
+\
+  uint8_t range = (maxThr > pressThr) ? (maxThr - pressThr) : 1;\
+  uint8_t scaled = (uint16_t)(pressure - pressThr) * 127 / range;\
+  if (scaled > 127) scaled = 127;\
+  if (scaled < 1)   scaled = 1;\
+  return scaled;\
+\}\
+\
+// Scale pressure to LED brightness percentage between BASE and MAX.\
+uint8_t scalePressureToBrightnessPercent(uint8_t pressure) \{\
+  if (pressure == 0) return MUSIC_BASE_BRIGHTNESS_PERCENT;\
+\
+  uint8_t pressThr = globalConfig.pressThreshold;\
+  uint8_t maxThr   = globalConfig.maxThreshold;\
+\
+  if (pressure <= pressThr) return MUSIC_BASE_BRIGHTNESS_PERCENT;\
+  if (pressure >= maxThr)   pressure = maxThr;\
+\
+  uint8_t range = (maxThr > pressThr) ? (maxThr - pressThr) : 1;\
+  uint8_t span  = MUSIC_MAX_BRIGHTNESS_PERCENT - MUSIC_BASE_BRIGHTNESS_PERCENT;\
+\
+  uint8_t scaled = (uint16_t)(pressure - pressThr) * span / range;\
+  uint8_t result = MUSIC_BASE_BRIGHTNESS_PERCENT + scaled;\
+\
+  if (result > MUSIC_MAX_BRIGHTNESS_PERCENT) result = MUSIC_MAX_BRIGHTNESS_PERCENT;\
+  return result;\
+\}\
+\
+// Build a 24-bit color for a cell at a given brightness.\
+uint32_t makeColorForCell(uint8_t cellIndex, uint8_t brightnessPercent) \{\
+  uint8_t ch = cellMidiChannel[cellIndex];\
+\
+  const uint8_t *baseColor;\
+  if      (ch == 1)  baseColor = MUSIC_CH1_COLOR;\
+  else if (ch == 2)  baseColor = MUSIC_CH2_COLOR;\
+  else if (ch == 3)  baseColor = MUSIC_CH3_COLOR;\
+  else if (ch == 10) baseColor = MUSIC_CH10_COLOR;\
+  else               baseColor = MUSIC_CH1_COLOR; // fallback\
+\
+  uint8_t r = (uint16_t)baseColor[0] * brightnessPercent / 100;\
+  uint8_t g = (uint16_t)baseColor[1] * brightnessPercent / 100;\
+  uint8_t b = (uint16_t)baseColor[2] * brightnessPercent / 100;\
+\
+  // Use Adafruit_NeoPixel helper for correct GRB order\
+  return strip.Color(r, g, b);\
+\}\
+\
+// Set LED colour for a given cellIndex at given brightness percentage.\
+void setMusicCellLed(uint8_t cellIndex, uint8_t brightnessPercent) \{\
+  if (cellIndex >= NUM_CELLS) return;\
+\
+  uint8_t addr = cellAddresses[cellIndex];\
+  if (addr == 0xFF) \{\
+    // Address not configured yet\
+    return;\
+  \}\
+\
+  uint32_t col = makeColorForCell(cellIndex, brightnessPercent);\
+  I2C_send_col(addr, col);\
+\}\
+\
+// Initialize state when we first enter Music mode\
+void MusicMode_init() \{\
+  for (uint8_t i = 0; i < NUM_CELLS; i++) \{\
+    musicCellPressed[i]        = false;\
+    musicCellLastVelocity[i]   = 0;\
+    musicCellLastPressMillis[i]= 0;\
+    musicDrumFading[i]         = false;\
+    musicDrumFadeStartMillis[i]= 0;\
+\
+    // Idle LED state per channel\
+    uint8_t ch = cellMidiChannel[i];\
+    if (ch == 1 || ch == 2 || ch == 3) \{\
+      setMusicCellLed(i, MUSIC_BASE_BRIGHTNESS_PERCENT);\
+    \} else if (ch == 10) \{\
+      // Drums: start off (or very dim if you prefer)\
+      setMusicCellLed(i, 0);\
+    \}\
+  \}\
+  lastMusicSampleMillis = millis();\
+\}\
+}

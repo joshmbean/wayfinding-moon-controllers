@@ -1,0 +1,139 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 void MusicMode_update() \{\
+  uint32_t now = millis();\
+\
+  // Do we want to sample this loop?\
+  if (now - lastMusicSampleMillis < MUSIC_SAMPLE_INTERVAL_MS) \{\
+    // Still update drum fades even if we're not reading pressures this tick\
+    for (uint8_t i = 0; i < NUM_CELLS; i++) \{\
+      if (musicDrumFading[i] && cellMidiChannel[i] == 10) \{\
+        uint32_t elapsed = now - musicDrumFadeStartMillis[i];\
+        if (elapsed >= MUSIC_DRUM_FADE_TIME_MS) \{\
+          // Fade finished\
+          musicDrumFading[i] = false;\
+          setMusicCellLed(i, 0);\
+        \} else \{\
+          uint8_t brightness = MUSIC_MAX_BRIGHTNESS_PERCENT *\
+                               (MUSIC_DRUM_FADE_TIME_MS - elapsed) /\
+                               MUSIC_DRUM_FADE_TIME_MS;\
+          setMusicCellLed(i, brightness);\
+        \}\
+      \}\
+    \}\
+    return;\
+  \}\
+\
+  lastMusicSampleMillis = now;\
+\
+  // For each cell: read pressure, decide press/release, update LED and send events\
+  for (uint8_t i = 0; i < NUM_CELLS; i++) \{\
+\
+    uint8_t addr = cellAddresses[i];\
+    if (addr == 0xFF) continue; // skip cells not wired in yet\
+\
+    // Request pressure from this sub-controller\
+    uint8_t pressure = I2C_request(addr, REQUEST_PRESSURE);\
+\
+    uint8_t ch = cellMidiChannel[i];\
+\
+    bool wasPressed = musicCellPressed[i];\
+    bool isPressed  = wasPressed;\
+\
+    // Decide new pressed state using global thresholds\
+    if (!wasPressed) \{\
+      // Not currently pressed \'96 check if we cross pressThreshold + retriggerTime\
+      if (pressure >= globalConfig.pressThreshold &&\
+          (now - musicCellLastPressMillis[i] >= globalConfig.retriggerTime)) \{\
+        isPressed = true;\
+        musicCellLastPressMillis[i] = now;\
+      \}\
+    \} else \{\
+      // Currently pressed \'96 check if we fall below releaseThreshold\
+      if (pressure <= globalConfig.releaseThreshold) \{\
+        isPressed = false;\
+      \}\
+    \}\
+\
+    // Handle transitions + MIDI + LEDs\
+\
+    // 1) New press\
+    if (!wasPressed && isPressed) \{\
+      musicCellPressed[i] = true;\
+\
+      uint8_t velocity;\
+      if (ch == 10) \{\
+        velocity = MUSIC_DEFAULT_DRUM_VELOCITY;\
+      \} else \{\
+        velocity = scalePressureToVelocity(pressure);\
+        if (velocity == 0) velocity = MUSIC_DEFAULT_MELODIC_VELOCITY;\
+      \}\
+      musicCellLastVelocity[i] = velocity;\
+\
+      MoonNoteEvent evt;\
+      evt.cellIndex = i;\
+      evt.action    = NOTE_PRESS;\
+      evt.pressure  = velocity; // treating as velocity on Moth side\
+\
+      sendNoteEventToMoth(evt);\
+\
+      // LEDs\
+      if (ch == 10) \{\
+        // Drums: bright blue, then start fade\
+        setMusicCellLed(i, MUSIC_MAX_BRIGHTNESS_PERCENT);\
+        musicDrumFading[i]        = true;\
+        musicDrumFadeStartMillis[i] = now;\
+      \} else \{\
+        // Melodic: brighten according to pressure\
+        uint8_t bright = scalePressureToBrightnessPercent(pressure);\
+        setMusicCellLed(i, bright);\
+      \}\
+    \}\
+\
+    // 2) Still pressed (no state change)\
+    else if (wasPressed && isPressed) \{\
+      // Only adjust LEDs (no extra MIDI for now)\
+      if (ch == 10) \{\
+        // Drums we treat as hits, not continuous pressure; LED already fading\
+        // Do nothing here.\
+      \} else \{\
+        uint8_t bright = scalePressureToBrightnessPercent(pressure);\
+        setMusicCellLed(i, bright);\
+      \}\
+    \}\
+\
+    // 3) Released\
+    else if (wasPressed && !isPressed) \{\
+      musicCellPressed[i] = false;\
+\
+      MoonNoteEvent evt;\
+      evt.cellIndex = i;\
+      evt.action    = NOTE_RELEASE;\
+      evt.pressure  = musicCellLastVelocity[i]; // not really needed, but we keep it\
+\
+      sendNoteEventToMoth(evt);\
+\
+      // LEDs: melodic back to base brightness, drums are already in fade\
+      if (ch == 10) \{\
+        // Let drums continue fading; nothing special here\
+      \} else \{\
+        setMusicCellLed(i, MUSIC_BASE_BRIGHTNESS_PERCENT);\
+      \}\
+    \}\
+\
+    // 4) Not pressed before or now \'96 keep idle LEDs\
+    else \{\
+      if (!wasPressed && !isPressed) \{\
+        if (ch == 1 || ch == 2 || ch == 3) \{\
+          setMusicCellLed(i, MUSIC_BASE_BRIGHTNESS_PERCENT);\
+        \}\
+      \}\
+    \}\
+  \}\
+\}\
+}

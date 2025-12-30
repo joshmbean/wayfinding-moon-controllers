@@ -1,0 +1,1629 @@
+#decide the character number for every division    
+divideEvery = 51200
+
+myHtmlString = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wayfinding Moon - Configuration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: #3498db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            /* Placeholder for logo bitmap */
+        }
+        
+        .header h1 {
+            flex: 1;
+            font-size: 28px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
+        }
+        
+        input[type="number"],
+        input[type="text"],
+        input[type="color"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .cell-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .cell-header {
+            padding: 15px 20px;
+            background: #e9ecef;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .cell-header:hover {
+            background: #dee2e6;
+        }
+        
+        .cell-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        .cell-toggle {
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .cell-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .cell-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+        }
+        
+        .cell-content.expanded {
+            max-height: 500px;
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Ensure nested containers can scroll */
+        #cellSettings {
+            max-height: 80vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* All nested panel and cell containers should scroll */
+        [id^="hemispherePanels"],
+        [id^="panelCells"] {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* Custom scrollbar styling for all scrollable containers */
+        .cell-content.expanded::-webkit-scrollbar,
+        #cellSettings::-webkit-scrollbar,
+        [id^="hemispherePanels"]::-webkit-scrollbar,
+        [id^="panelCells"]::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .cell-content.expanded::-webkit-scrollbar-track,
+        #cellSettings::-webkit-scrollbar-track,
+        [id^="hemispherePanels"]::-webkit-scrollbar-track,
+        [id^="panelCells"]::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .cell-content.expanded::-webkit-scrollbar-thumb,
+        #cellSettings::-webkit-scrollbar-thumb,
+        [id^="hemispherePanels"]::-webkit-scrollbar-thumb,
+        [id^="panelCells"]::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .cell-content.expanded::-webkit-scrollbar-thumb:hover,
+        #cellSettings::-webkit-scrollbar-thumb:hover,
+        [id^="hemispherePanels"]::-webkit-scrollbar-thumb:hover,
+        [id^="panelCells"]::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Firefox scrollbar styling */
+        .cell-content.expanded,
+        #cellSettings,
+        [id^="hemispherePanels"],
+        [id^="panelCells"] {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ecf0f1;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+            color: #2c3e50;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom-color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .radio-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        
+        .radio-option:hover {
+            background: #e9ecef;
+            border-color: #3498db;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .radio-option input[type="radio"]:checked + span {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .radio-option:has(input[type="radio"]:checked) {
+            background: #e3f2fd;
+            border-color: #3498db;
+        }
+        
+        .radio-option span {
+            flex: 1;
+            font-size: 16px;
+            color: #34495e;
+        }
+        
+        .radio-grid.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .radio-grid.disabled .radio-option {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #3498db;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-switch input:focus + .toggle-slider {
+            box-shadow: 0 0 1px #3498db;
+        }
+        
+        .console-container {
+            background: #1e1e1e;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            height: 600px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .console-log {
+            color: #d4d4d4;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .console-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .console-container::-webkit-scrollbar-track {
+            background: #252526;
+            border-radius: 4px;
+        }
+        
+        .console-container::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 4px;
+        }
+        
+        .console-container::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
+        }
+        
+        .console-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        
+        .console-status.connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .console-status.disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .console-status.connecting {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #27ae60;
+            background: #e8f5e9;
+        }
+        
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #e3f2fd;
+        }
+        
+        #uploadContent {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">WM</div>
+            <h1>Wayfinding Moon Configuration</h1>
+        </div>
+        <div class="content">
+            <div id="statusMessage" class="status-message"></div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('config')">Configuration</button>
+                <button class="tab" onclick="switchTab('wifi')">WiFi AP Settings</button>
+                <button class="tab" onclick="switchTab('console')">Console</button>
+                <button class="tab" onclick="switchTab('diagnostics')">Diagnostics</button>
+            </div>
+            
+            <!-- Configuration Tab -->
+            <div id="configTab" class="tab-content active">
+                <form id="configForm">
+                    <div class="section">
+                        <h2 class="section-title">Global Settings</h2>
+                        
+                        <div class="form-group">
+                            <label for="longTermAvgSamples">Long Term Average Samples</label>
+                            <input type="number" id="longTermAvgSamples" name="longTermAvgSamples" min="0" max="65535" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="shortTermAvgSamples">Short Term Average Samples</label>
+                            <input type="number" id="shortTermAvgSamples" name="shortTermAvgSamples" min="0" max="65535" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="brightness">Brightness (%)</label>
+                            <input type="number" id="brightness" name="brightness" min="0" max="100" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="retriggerTime">Retrigger Time (mS)</label>
+                            <input type="number" id="retriggerTime" name="retriggerTime" min="0" max="65535" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sampleTime">Sample Time (mS)</label>
+                            <input type="number" id="sampleTime" name="sampleTime" min="0" max="65525" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pressThreshold">Press Threshold</label>
+                            <input type="number" id="pressThreshold" name="pressThreshold" min="0" max="255" required>
+                            <p class="help-text">Range: Release Threshold to 255</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="releaseThreshold">Release Threshold</label>
+                            <input type="number" id="releaseThreshold" name="releaseThreshold" min="0" max="255" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="maxThreshold">Max Threshold</label>
+                            <input type="number" id="maxThreshold" name="maxThreshold" min="0" max="255" required>
+                            <p class="help-text">Range: Press Threshold to 255</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="i2cFrequency">I2C Frequency (kHz)</label>
+                            <input type="number" id="i2cFrequency" name="i2cFrequency" min="1" max="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                            <h2 class="section-title" style="margin: 0;">Mode Override</h2>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="modeOverrideEnabled" name="modeOverrideEnabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="radio-grid" id="modeOverrideGrid">
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Base" id="modeBase">
+                                <span>Base</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Moth" id="modeMoth">
+                                <span>Moth</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Music" id="modeMusic">
+                                <span>Music</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Colour" id="modeColour">
+                                <span>Colour</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Simon" id="modeSimon">
+                                <span>Simon</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Standby" id="modeStandby">
+                                <span>Standby</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Debug" id="modeDebug">
+                                <span>Debug</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="modeOverride" value="Flash" id="modeFlash">
+                                <span>Flash</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">Colour Gradient</h2>
+                        
+                        <div class="form-group">
+                            <label for="startColour">Start Colour</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="startColourPicker" name="startColourPicker" style="width: 80px; height: 40px; cursor: pointer;">
+                                <input type="text" id="startColour" name="startColour" pattern="^[0-9A-Fa-f]{6}$" placeholder="RRGGBB" maxlength="6" required style="flex: 1;">
+                            </div>
+                            <p class="help-text">24-bit RGB value (hex format: RRGGBB)</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="endColour">End Colour</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="endColourPicker" name="endColourPicker" style="width: 80px; height: 40px; cursor: pointer;">
+                                <input type="text" id="endColour" name="endColour" pattern="^[0-9A-Fa-f]{6}$" placeholder="RRGGBB" maxlength="6" required style="flex: 1;">
+                            </div>
+                            <p class="help-text">24-bit RGB value (hex format: RRGGBB)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2 class="section-title">Cell Settings</h2>
+                        <p class="help-text">Leave fields empty to use global defaults. Custom values override global defaults.</p>
+                        <p class="help-text">Structure: 2 Hemispheres → 4 Panels → 8 Cells each</p>
+                        <div id="cellSettings"></div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-success">Save Configuration</button>
+                        <button type="button" class="btn" onclick="loadConfig()">Reload</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- WiFi AP Settings Tab -->
+            <div id="wifiTab" class="tab-content">
+                <form id="wifiForm">
+                    <div class="section">
+                        <h2 class="section-title">WiFi Access Point Settings</h2>
+                        <p class="help-text">Changes to WiFi settings will take effect after device restart.</p>
+                        
+                        <div class="form-group">
+                            <label for="wifiSSID">Access Point SSID</label>
+                            <input type="text" id="wifiSSID" name="wifiSSID" maxlength="32" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="wifiPassword">Access Point Password</label>
+                            <input type="password" id="wifiPassword" name="wifiPassword" minlength="8" maxlength="63" required>
+                            <p class="help-text">Minimum 8 characters required for WPA2 security.</p>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-success">Save WiFi Settings</button>
+                            <button type="button" class="btn" onclick="loadWiFiConfig()">Reload</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Console Tab -->
+            <div id="consoleTab" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">Console Logs</h2>
+                    <div>
+                        <span id="consoleStatus" class="console-status disconnected">Disconnected</span>
+                        <button class="btn" onclick="clearConsole()" style="float: right; margin-bottom: 10px;">Clear</button>
+                    </div>
+                    <div class="console-container" id="consoleOutput">
+                        <pre class="console-log" id="consoleLog"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Diagnostics Tab -->
+            <div id="diagnosticsTab" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">System Diagnostics</h2>
+                    
+                    <div class="form-group">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">System Information</h3>
+                        <div id="systemInfo" style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 14px;">
+                            <div>Free Heap: <span id="freeHeap">-</span> bytes</div>
+                            <div>Uptime: <span id="uptime">-</span></div>
+                            <div>Chip Model: <span id="chipModel">-</span></div>
+                            <div>Chip Revision: <span id="chipRevision">-</span></div>
+                            <div>CPU Frequency: <span id="cpuFreq">-</span> MHz</div>
+                            <div>Flash Size: <span id="flashSize">-</span> bytes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="section" style="margin-top: 30px;">
+                        <h2 class="section-title">Main Controller Firmware Update</h2>
+                        <p class="help-text">Upload a new firmware binary file (.bin) to update the device. The device will restart after a successful update.</p>
+                        
+                        <div id="uploadArea" class="upload-area">
+                            <div id="uploadContent">
+                                <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
+                                <p style="font-size: 16px; margin-bottom: 5px;">Drag and drop firmware file here</p>
+                                <p style="font-size: 14px; color: #6c757d;">or</p>
+                                <label for="firmwareFile" class="btn" style="margin-top: 10px; cursor: pointer; display: inline-block;">
+                                    Browse Files
+                                    <input type="file" id="firmwareFile" accept=".bin" style="display: none;" onchange="handleFileSelect(this.files)">
+                                </label>
+                            </div>
+                            <div id="uploadProgress" style="display: none;">
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Uploading: <span id="fileName">-</span></strong>
+                                </div>
+                                <div style="background: #e9ecef; border-radius: 4px; height: 30px; position: relative; overflow: hidden;">
+                                    <div id="progressBar" style="background: #3498db; height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                        <span id="progressText">0%</span>
+                                    </div>
+                                </div>
+                                <div id="uploadStatus" style="margin-top: 10px; font-size: 14px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section" style="margin-top: 30px;">
+                        <h2 class="section-title">Sub-controller Firmware Update</h2>
+                        <p class="help-text">Upload a new firmware binary file (.bin) to update a sub-controller via I2C. Specify the I2C address (default: 0x02).</p>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="subControllerAddress">Sub-controller I2C Address (hex)</label>
+                            <input type="text" id="subControllerAddress" name="subControllerAddress" pattern="^0x[0-9A-Fa-f]{1,2}$" placeholder="0x02" value="0x02" maxlength="4" style="width: 150px;">
+                            <p class="help-text">Enter address in hex format (e.g., 0x02, 0x10)</p>
+                        </div>
+                        <div id="subUploadArea" class="upload-area">
+                            <div id="subUploadContent">
+                                <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
+                                <p style="font-size: 16px; margin-bottom: 5px;">Drag and drop firmware file here</p>
+                                <p style="font-size: 14px; color: #6c757d;">or</p>
+                                <label for="subFirmwareFile" class="btn" style="margin-top: 10px; cursor: pointer; display: inline-block;">
+                                    Browse Files
+                                    <input type="file" id="subFirmwareFile" accept=".bin" style="display: none;" onchange="handleSubFileSelect(this.files)">
+                                </label>
+                            </div>
+                            <div id="subUploadProgress" style="display: none;">
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Uploading: <span id="subFileName">-</span></strong>
+                                </div>
+                                <div style="background: #e9ecef; border-radius: 4px; height: 30px; position: relative; overflow: hidden;">
+                                    <div id="subProgressBar" style="background: #3498db; height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                        <span id="subProgressText">0%</span>
+                                    </div>
+                                </div>
+                                <div id="subUploadStatus" style="margin-top: 10px; font-size: 14px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let globalDefaults = {
+            pressPressure: 100,
+            releasePressure: 50,
+            repressTime: 500
+        };
+        
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + (isError ? 'error' : 'success');
+            setTimeout(() => {
+                statusEl.className = 'status-message';
+            }, 3000);
+        }
+        
+        function switchTab(tabName) {
+            // Stop system info updates if leaving diagnostics tab
+            if (document.getElementById('diagnosticsTab').classList.contains('active')) {
+                stopSystemInfoUpdates();
+            }
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            if (tabName === 'config') {
+                document.getElementById('configTab').classList.add('active');
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            } else if (tabName === 'wifi') {
+                document.getElementById('wifiTab').classList.add('active');
+                document.querySelectorAll('.tab')[1].classList.add('active');
+            } else if (tabName === 'console') {
+                document.getElementById('consoleTab').classList.add('active');
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                // Connect WebSocket when console tab is opened
+                connectWebSocket();
+            } else if (tabName === 'diagnostics') {
+                document.getElementById('diagnosticsTab').classList.add('active');
+                document.querySelectorAll('.tab')[3].classList.add('active');
+                // Load system info when diagnostics tab is opened
+                loadSystemInfo();
+                startSystemInfoUpdates();
+            }
+        }
+        
+        // WebSocket connection for console logs
+        let ws = null;
+        let reconnectTimeout = null;
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                return; // Already connected
+            }
+            
+            updateConsoleStatus('connecting', 'Connecting...');
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = protocol + '//' + window.location.hostname + ':81';
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    updateConsoleStatus('connected', 'Connected');
+                    if (reconnectTimeout) {
+                        clearTimeout(reconnectTimeout);
+                        reconnectTimeout = null;
+                    }
+                };
+                
+                ws.onmessage = function(event) {
+                    appendConsoleLog(event.data);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    updateConsoleStatus('disconnected', 'Connection Error');
+                };
+                
+                ws.onclose = function() {
+                    updateConsoleStatus('disconnected', 'Disconnected');
+                    // Attempt to reconnect after 3 seconds
+                    if (!reconnectTimeout) {
+                        reconnectTimeout = setTimeout(function() {
+                            reconnectTimeout = null;
+                            if (document.getElementById('consoleTab').classList.contains('active')) {
+                                connectWebSocket();
+                            }
+                        }, 3000);
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                updateConsoleStatus('disconnected', 'Connection Failed');
+            }
+        }
+        
+        function updateConsoleStatus(status, text) {
+            const statusEl = document.getElementById('consoleStatus');
+            statusEl.className = 'console-status ' + status;
+            statusEl.textContent = text;
+        }
+        
+        function appendConsoleLog(message) {
+            const logEl = document.getElementById('consoleLog');
+            logEl.textContent += message;
+            
+            // Auto-scroll to bottom
+            const container = document.getElementById('consoleOutput');
+            container.scrollTop = container.scrollHeight;
+            
+            // Limit log size to prevent memory issues (keep last 50000 characters)
+            if (logEl.textContent.length > 50000) {
+                logEl.textContent = logEl.textContent.substring(logEl.textContent.length - 50000);
+            }
+        }
+        
+        function clearConsole() {
+            document.getElementById('consoleLog').textContent = '';
+        }
+        
+        function toggleHemisphere(hemisphereIndex) {
+            const content = document.getElementById('hemisphereContent' + hemisphereIndex);
+            const toggle = document.getElementById('hemisphereToggle' + hemisphereIndex);
+            content.classList.toggle('expanded');
+            toggle.classList.toggle('expanded');
+        }
+        
+        function togglePanel(hemisphereIndex, panelIndex) {
+            const content = document.getElementById('panelContent' + hemisphereIndex + '_' + panelIndex);
+            const toggle = document.getElementById('panelToggle' + hemisphereIndex + '_' + panelIndex);
+            content.classList.toggle('expanded');
+            toggle.classList.toggle('expanded');
+        }
+        
+        function toggleCell(hemisphereIndex, panelIndex, cellIndex) {
+            const content = document.getElementById('cellContent' + hemisphereIndex + '_' + panelIndex + '_' + cellIndex);
+            const toggle = document.getElementById('cellToggle' + hemisphereIndex + '_' + panelIndex + '_' + cellIndex);
+            content.classList.toggle('expanded');
+            toggle.classList.toggle('expanded');
+        }
+        
+        function generateCellSettings() {
+            const container = document.getElementById('cellSettings');
+            container.innerHTML = "";
+            
+            // Update global defaults for placeholders (using legacy defaults)
+            globalDefaults.pressPressure = 100;
+            globalDefaults.releasePressure = 50;
+            globalDefaults.repressTime = 500;
+            
+            // Generate structure: 2 Hemispheres -> 4 Panels -> 8 Cells
+            for (let h = 0; h < 2; h++) {
+                const hemisphereDiv = document.createElement('div');
+                hemisphereDiv.className = 'cell-item';
+                hemisphereDiv.innerHTML = 
+                    '<div class="cell-header" onclick="toggleHemisphere(' + h + ')">' +
+                        '<h3>Hemisphere ' + (h + 1) + '</h3>' +
+                        '<span class="cell-toggle" id="hemisphereToggle' + h + '">▼</span>' +
+                    '</div>' +
+                    '<div class="cell-content" id="hemisphereContent' + h + '">' +
+                        '<div id="hemispherePanels' + h + '"></div>' +
+                    '</div>';
+                container.appendChild(hemisphereDiv);
+                
+                // Generate panels for this hemisphere
+                const panelsContainer = document.getElementById('hemispherePanels' + h);
+                for (let p = 0; p < 4; p++) {
+                    const panelDiv = document.createElement('div');
+                    panelDiv.className = 'cell-item';
+                    panelDiv.style.marginLeft = '20px';
+                    panelDiv.innerHTML = 
+                        '<div class="cell-header" onclick="togglePanel(' + h + ',' + p + ')">' +
+                            '<h3>Panel ' + (p + 1) + '</h3>' +
+                            '<span class="cell-toggle" id="panelToggle' + h + '_' + p + '">▼</span>' +
+                        '</div>' +
+                        '<div class="cell-content" id="panelContent' + h + '_' + p + '">' +
+                            '<div id="panelCells' + h + '_' + p + '"></div>' +
+                        '</div>';
+                    panelsContainer.appendChild(panelDiv);
+                    
+                    // Generate cells for this panel
+                    const cellsContainer = document.getElementById('panelCells' + h + '_' + p);
+                    for (let c = 0; c < 8; c++) {
+                        const cellDiv = document.createElement('div');
+                        cellDiv.className = 'cell-item';
+                        cellDiv.style.marginLeft = '20px';
+                        cellDiv.innerHTML = 
+                            '<div class="cell-header" onclick="toggleCell(' + h + ',' + p + ',' + c + ')">' +
+                                '<h3>Cell ' + (c + 1) + '</h3>' +
+                                '<span class="cell-toggle" id="cellToggle' + h + '_' + p + '_' + c + '">▼</span>' +
+                            '</div>' +
+                            '<div class="cell-content" id="cellContent' + h + '_' + p + '_' + c + '">' +
+                                '<div class="form-group">' +
+                                    '<label for="cell' + h + '_' + p + '_' + c + '_press">Press Pressure</label>' +
+                                    '<input type="number" id="cell' + h + '_' + p + '_' + c + '_press" name="cell' + h + '_' + p + '_' + c + '_press" min="0" placeholder="Uses global default (' + globalDefaults.pressPressure + ')">' +
+                                    '<p class="help-text">Leave empty to use global default</p>' +
+                                '</div>' +
+                                '<div class="form-group">' +
+                                    '<label for="cell' + h + '_' + p + '_' + c + '_release">Release Pressure</label>' +
+                                    '<input type="number" id="cell' + h + '_' + p + '_' + c + '_release" name="cell' + h + '_' + p + '_' + c + '_release" min="0" placeholder="Uses global default (' + globalDefaults.releasePressure + ')">' +
+                                    '<p class="help-text">Leave empty to use global default</p>' +
+                                '</div>' +
+                                '<div class="form-group">' +
+                                    '<label for="cell' + h + '_' + p + '_' + c + '_repress">Re-press Time (ms)</label>' +
+                                    '<input type="number" id="cell' + h + '_' + p + '_' + c + '_repress" name="cell' + h + '_' + p + '_' + c + '_repress" min="0" placeholder="Uses global default (' + globalDefaults.repressTime + ')">' +
+                                    '<p class="help-text">Leave empty to use global default</p>' +
+                                '</div>' +
+                            '</div>';
+                        cellsContainer.appendChild(cellDiv);
+                    }
+                }
+            }
+        }
+        
+        function updateCellSettings() {
+            // Regenerate with updated global defaults
+            generateCellSettings();
+            loadCellConfigs();
+        }
+        
+        function validateThresholds() {
+            const releaseThreshold = parseInt(document.getElementById('releaseThreshold').value) || 0;
+            const pressThreshold = parseInt(document.getElementById('pressThreshold').value) || 0;
+            const maxThreshold = parseInt(document.getElementById('maxThreshold').value) || 0;
+            
+            // Update min/max constraints dynamically
+            const pressInput = document.getElementById('pressThreshold');
+            const maxInput = document.getElementById('maxThreshold');
+            
+            pressInput.min = releaseThreshold;
+            maxInput.min = pressThreshold;
+            
+            // Validate current values
+            if (pressThreshold < releaseThreshold) {
+                pressInput.setCustomValidity('Press Threshold must be >= Release Threshold');
+            } else {
+                pressInput.setCustomValidity('');
+            }
+            
+            if (maxThreshold < pressThreshold) {
+                maxInput.setCustomValidity('Max Threshold must be >= Press Threshold');
+            } else {
+                maxInput.setCustomValidity('');
+            }
+        }
+        
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                // Load new global settings
+                if (data.longTermAvgSamples !== undefined) {
+                    document.getElementById('longTermAvgSamples').value = data.longTermAvgSamples;
+                }
+                if (data.shortTermAvgSamples !== undefined) {
+                    document.getElementById('shortTermAvgSamples').value = data.shortTermAvgSamples;
+                }
+                if (data.brightness !== undefined) {
+                    document.getElementById('brightness').value = data.brightness;
+                }
+                if (data.retriggerTime !== undefined) {
+                    document.getElementById('retriggerTime').value = data.retriggerTime;
+                }
+                if (data.sampleTime !== undefined) {
+                    document.getElementById('sampleTime').value = data.sampleTime;
+                }
+                if (data.pressThreshold !== undefined) {
+                    document.getElementById('pressThreshold').value = data.pressThreshold;
+                }
+                if (data.releaseThreshold !== undefined) {
+                    document.getElementById('releaseThreshold').value = data.releaseThreshold;
+                }
+                if (data.maxThreshold !== undefined) {
+                    document.getElementById('maxThreshold').value = data.maxThreshold;
+                }
+                if (data.i2cFrequency !== undefined) {
+                    document.getElementById('i2cFrequency').value = data.i2cFrequency;
+                }
+                if (data.modeOverrideEnabled !== undefined) {
+                    document.getElementById('modeOverrideEnabled').checked = data.modeOverrideEnabled;
+                    updateModeOverrideState(data.modeOverrideEnabled);
+                }
+                if (data.modeOverride !== undefined) {
+                    const modeRadio = document.getElementById('mode' + data.modeOverride);
+                    if (modeRadio) {
+                        modeRadio.checked = true;
+                    }
+                }
+                if (data.startColour !== undefined) {
+                    const hexColour = '#' + data.startColour.toString(16).padStart(6, '0').toUpperCase();
+                    document.getElementById('startColour').value = hexColour.substring(1);
+                    document.getElementById('startColourPicker').value = hexColour;
+                }
+                if (data.endColour !== undefined) {
+                    const hexColour = '#' + data.endColour.toString(16).padStart(6, '0').toUpperCase();
+                    document.getElementById('endColour').value = hexColour.substring(1);
+                    document.getElementById('endColourPicker').value = hexColour;
+                }
+                
+                // Validate thresholds after loading
+                validateThresholds();
+                
+                // Generate the nested structure
+                generateCellSettings();
+                
+                // Load cell configs from nested structure (-1 means use global default, so leave empty)
+                if (data.hemispheres && Array.isArray(data.hemispheres)) {
+                    data.hemispheres.forEach((hemisphere, h) => {
+                        if (hemisphere.panels && Array.isArray(hemisphere.panels)) {
+                            hemisphere.panels.forEach((panel, p) => {
+                                if (panel.cells && Array.isArray(panel.cells)) {
+                                    panel.cells.forEach((cell, c) => {
+                                        const pressVal = cell.pressPressure;
+                                        const releaseVal = cell.releasePressure;
+                                        const repressVal = cell.repressTime;
+                                        
+                                        const pressEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_press');
+                                        const releaseEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_release');
+                                        const repressEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_repress');
+                                        
+                                        if (pressEl) pressEl.value = (pressVal === -1 || pressVal === null || pressVal === undefined) ? '' : pressVal;
+                                        if (releaseEl) releaseEl.value = (releaseVal === -1 || releaseVal === null || releaseVal === undefined) ? '' : releaseVal;
+                                        if (repressEl) repressEl.value = (repressVal === -1 || repressVal === null || repressVal === undefined) ? '' : repressVal;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                showStatus('Configuration loaded successfully');
+            } catch (error) {
+                showStatus('Error loading configuration: ' + error.message, true);
+            }
+        }
+        
+        async function loadCellConfigs() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                // Load cell configs from nested structure
+                if (data.hemispheres && Array.isArray(data.hemispheres)) {
+                    data.hemispheres.forEach((hemisphere, h) => {
+                        if (hemisphere.panels && Array.isArray(hemisphere.panels)) {
+                            hemisphere.panels.forEach((panel, p) => {
+                                if (panel.cells && Array.isArray(panel.cells)) {
+                                    panel.cells.forEach((cell, c) => {
+                                        const pressVal = cell.pressPressure;
+                                        const releaseVal = cell.releasePressure;
+                                        const repressVal = cell.repressTime;
+                                        
+                                        const pressEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_press');
+                                        const releaseEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_release');
+                                        const repressEl = document.getElementById('cell' + h + '_' + p + '_' + c + '_repress');
+                                        
+                                        if (pressEl) pressEl.value = (pressVal === -1 || pressVal === null || pressVal === undefined) ? '' : pressVal;
+                                        if (releaseEl) releaseEl.value = (releaseVal === -1 || releaseVal === null || releaseVal === undefined) ? '' : releaseVal;
+                                        if (repressEl) repressEl.value = (repressVal === -1 || repressVal === null || repressVal === undefined) ? '' : repressVal;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading cell configs:', error);
+            }
+        }
+        
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate thresholds before submission
+            validateThresholds();
+            if (!document.getElementById('configForm').checkValidity()) {
+                return;
+            }
+            
+            const formData = {
+                longTermAvgSamples: parseInt(document.getElementById('longTermAvgSamples').value),
+                shortTermAvgSamples: parseInt(document.getElementById('shortTermAvgSamples').value),
+                brightness: parseInt(document.getElementById('brightness').value),
+                retriggerTime: parseInt(document.getElementById('retriggerTime').value),
+                sampleTime: parseInt(document.getElementById('sampleTime').value),
+                pressThreshold: parseInt(document.getElementById('pressThreshold').value),
+                releaseThreshold: parseInt(document.getElementById('releaseThreshold').value),
+                maxThreshold: parseInt(document.getElementById('maxThreshold').value),
+                modeOverride: document.querySelector('input[name="modeOverride"]:checked') ? document.querySelector('input[name="modeOverride"]:checked').value : 'Base',
+                modeOverrideEnabled: document.getElementById('modeOverrideEnabled').checked,
+                i2cFrequency: parseInt(document.getElementById('i2cFrequency').value),
+                startColour: parseInt(document.getElementById('startColour').value, 16),
+                endColour: parseInt(document.getElementById('endColour').value, 16),
+                hemispheres: []
+            };
+            
+            // Build nested structure: 2 Hemispheres -> 4 Panels -> 8 Cells
+            for (let h = 0; h < 2; h++) {
+                const hemisphere = {
+                    id: h,
+                    panels: []
+                };
+                
+                for (let p = 0; p < 4; p++) {
+                    const panel = {
+                        id: p,
+                        cells: []
+                    };
+                    
+                    for (let c = 0; c < 8; c++) {
+                        const pressVal = document.getElementById('cell' + h + '_' + p + '_' + c + '_press').value;
+                        const releaseVal = document.getElementById('cell' + h + '_' + p + '_' + c + '_release').value;
+                        const repressVal = document.getElementById('cell' + h + '_' + p + '_' + c + '_repress').value;
+                        
+                        panel.cells.push({
+                            id: c,
+                            pressPressure: (pressVal === '' || pressVal === null) ? -1 : parseInt(pressVal),
+                            releasePressure: (releaseVal === '' || releaseVal === null) ? -1 : parseInt(releaseVal),
+                            repressTime: (repressVal === '' || repressVal === null) ? -1 : parseInt(repressVal)
+                        });
+                    }
+                    
+                    hemisphere.panels.push(panel);
+                }
+                
+                formData.hemispheres.push(hemisphere);
+            }
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    showStatus('Configuration saved successfully!');
+                } else {
+                    showStatus('Error saving configuration', true);
+                }
+            } catch (error) {
+                showStatus('Error saving configuration: ' + error.message, true);
+            }
+        });
+        
+        // Validate thresholds when they change
+        document.getElementById('releaseThreshold').addEventListener('input', validateThresholds);
+        document.getElementById('pressThreshold').addEventListener('input', validateThresholds);
+        document.getElementById('maxThreshold').addEventListener('input', validateThresholds);
+        
+        // Handle Mode Override toggle switch
+        function updateModeOverrideState(enabled) {
+            const grid = document.getElementById('modeOverrideGrid');
+            const radioButtons = grid.querySelectorAll('input[type="radio"]');
+            
+            if (enabled) {
+                grid.classList.remove('disabled');
+                radioButtons.forEach(radio => {
+                    radio.disabled = false;
+                });
+            } else {
+                grid.classList.add('disabled');
+                radioButtons.forEach(radio => {
+                    radio.disabled = true;
+                });
+            }
+        }
+        
+        document.getElementById('modeOverrideEnabled').addEventListener('change', function() {
+            updateModeOverrideState(this.checked);
+        });
+        
+        // Initialize mode override state on page load
+        updateModeOverrideState(document.getElementById('modeOverrideEnabled').checked);
+        
+        // Sync color picker with text field
+        function syncColorPickerToText(pickerId, textId) {
+            const picker = document.getElementById(pickerId);
+            const text = document.getElementById(textId);
+            picker.addEventListener('input', function() {
+                text.value = this.value.substring(1).toUpperCase();
+            });
+        }
+        
+        // Sync text field with color picker
+        function syncTextToColorPicker(textId, pickerId) {
+            const text = document.getElementById(textId);
+            const picker = document.getElementById(pickerId);
+            text.addEventListener('input', function() {
+                const value = this.value.toUpperCase();
+                if (/^[0-9A-F]{6}$/.test(value)) {
+                    picker.value = '#' + value;
+                }
+            });
+        }
+        
+        // Initialize color picker sync
+        syncColorPickerToText('startColourPicker', 'startColour');
+        syncTextToColorPicker('startColour', 'startColourPicker');
+        syncColorPickerToText('endColourPicker', 'endColour');
+        syncTextToColorPicker('endColour', 'endColourPicker');
+        
+        // WiFi form submission
+        document.getElementById('wifiForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const wifiData = {
+                ssid: document.getElementById('wifiSSID').value,
+                password: document.getElementById('wifiPassword').value
+            };
+            
+            try {
+                const response = await fetch('/api/wifi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(wifiData)
+                });
+                
+                if (response.ok) {
+                    showStatus('WiFi settings saved successfully! Restart device to apply changes.');
+                } else {
+                    showStatus('Error saving WiFi settings', true);
+                }
+            } catch (error) {
+                showStatus('Error saving WiFi settings: ' + error.message, true);
+            }
+        });
+        
+        async function loadWiFiConfig() {
+            try {
+                const response = await fetch('/api/wifi');
+                const data = await response.json();
+                
+                document.getElementById('wifiSSID').value = data.ssid || '';
+                document.getElementById('wifiPassword').value = data.password || '';
+                
+                showStatus('WiFi configuration loaded successfully');
+            } catch (error) {
+                showStatus('Error loading WiFi configuration: ' + error.message, true);
+            }
+        }
+        
+        // System diagnostics functions
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/diagnostics');
+                const data = await response.json();
+                
+                document.getElementById('freeHeap').textContent = data.freeHeap || '-';
+                document.getElementById('uptime').textContent = formatUptime(data.uptime || 0);
+                document.getElementById('chipModel').textContent = data.chipModel || '-';
+                document.getElementById('chipRevision').textContent = data.chipRevision || '-';
+                document.getElementById('cpuFreq').textContent = data.cpuFreq || '-';
+                document.getElementById('flashSize').textContent = data.flashSize || '-';
+            } catch (error) {
+                console.error('Error loading system info:', error);
+            }
+        }
+        
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (days > 0) {
+                return days + 'd ' + hours + 'h ' + minutes + 'm ' + secs + 's';
+            } else if (hours > 0) {
+                return hours + 'h ' + minutes + 'm ' + secs + 's';
+            } else if (minutes > 0) {
+                return minutes + 'm ' + secs + 's';
+            } else {
+                return secs + 's';
+            }
+        }
+        
+        let systemInfoInterval = null;
+        function startSystemInfoUpdates() {
+            if (systemInfoInterval) {
+                clearInterval(systemInfoInterval);
+            }
+            loadSystemInfo();
+            systemInfoInterval = setInterval(loadSystemInfo, 2000); // Update every 2 seconds
+        }
+        
+        function stopSystemInfoUpdates() {
+            if (systemInfoInterval) {
+                clearInterval(systemInfoInterval);
+                systemInfoInterval = null;
+            }
+        }
+        
+        // Firmware upload functions
+        function handleFileSelect(files) {
+            if (files.length > 0) {
+                uploadFirmware(files[0]);
+            }
+        }
+        
+        function uploadFirmware(file) {
+            if (!file.name.endsWith('.bin')) {
+                showStatus('Please select a .bin firmware file', true);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('firmware', file);
+            
+            // Show upload UI
+            document.getElementById('uploadContent').style.display = 'none';
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressText').textContent = '0%';
+            document.getElementById('uploadStatus').textContent = 'Preparing upload...';
+            
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    document.getElementById('progressBar').style.width = percentComplete + '%';
+                    document.getElementById('progressText').textContent = Math.round(percentComplete) + '%';
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    document.getElementById('uploadStatus').textContent = 'Upload successful! Device will restart...';
+                    document.getElementById('uploadStatus').style.color = '#27ae60';
+                    showStatus('Firmware uploaded successfully! Device restarting...');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    document.getElementById('uploadStatus').textContent = 'Upload failed: ' + xhr.responseText;
+                    document.getElementById('uploadStatus').style.color = '#e74c3c';
+                    showStatus('Firmware upload failed: ' + xhr.responseText, true);
+                    resetUploadUI();
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                document.getElementById('uploadStatus').textContent = 'Upload error occurred';
+                document.getElementById('uploadStatus').style.color = '#e74c3c';
+                showStatus('Firmware upload error', true);
+                resetUploadUI();
+            });
+            
+            xhr.addEventListener('abort', function() {
+                document.getElementById('uploadStatus').textContent = 'Upload cancelled';
+                document.getElementById('uploadStatus').style.color = '#6c757d';
+                resetUploadUI();
+            });
+            
+            xhr.open('POST', '/update');
+            xhr.send(formData);
+        }
+        
+        function resetUploadUI() {
+            setTimeout(() => {
+                document.getElementById('uploadContent').style.display = 'block';
+                document.getElementById('uploadProgress').style.display = 'none';
+                document.getElementById('firmwareFile').value = '';
+            }, 2000);
+        }
+        
+        // Sub-controller firmware upload functions
+        function handleSubFileSelect(files) {
+            if (files.length > 0) {
+                uploadSubFirmware(files[0]);
+            }
+        }
+        
+        function uploadSubFirmware(file) {
+            if (!file.name.endsWith('.bin')) {
+                showStatus('Please select a .bin firmware file', true);
+                return;
+            }
+            
+            // Get I2C address from input
+            const addressInput = document.getElementById('subControllerAddress').value;
+            let address = 0x02; // Default
+            
+            if (addressInput) {
+                // Parse hex address (e.g., "0x02" or "02")
+                const addrStr = addressInput.startsWith('0x') || addressInput.startsWith('0X') 
+                    ? addressInput.substring(2) 
+                    : addressInput;
+                address = parseInt(addrStr, 16);
+                
+                if (isNaN(address) || address < 0 || address > 127) {
+                    showStatus('Invalid I2C address. Must be 0x00 to 0x7F', true);
+                    return;
+                }
+            }
+            
+            const formData = new FormData();
+            formData.append('firmware', file);
+            
+            // Show upload UI
+            document.getElementById('subUploadContent').style.display = 'none';
+            document.getElementById('subUploadProgress').style.display = 'block';
+            document.getElementById('subFileName').textContent = file.name;
+            document.getElementById('subProgressBar').style.width = '0%';
+            document.getElementById('subProgressText').textContent = '0%';
+            document.getElementById('subUploadStatus').textContent = 'Preparing upload...';
+            
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    document.getElementById('subProgressBar').style.width = percentComplete + '%';
+                    document.getElementById('subProgressText').textContent = Math.round(percentComplete) + '%';
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    document.getElementById('subUploadStatus').textContent = 'Upload successful! Sub-controller update complete.';
+                    document.getElementById('subUploadStatus').style.color = '#27ae60';
+                    showStatus('Sub-controller firmware uploaded successfully!');
+                    resetSubUploadUI();
+                } else {
+                    document.getElementById('subUploadStatus').textContent = 'Upload failed: ' + xhr.responseText;
+                    document.getElementById('subUploadStatus').style.color = '#e74c3c';
+                    showStatus('Sub-controller firmware upload failed: ' + xhr.responseText, true);
+                    resetSubUploadUI();
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                document.getElementById('subUploadStatus').textContent = 'Upload error occurred';
+                document.getElementById('subUploadStatus').style.color = '#e74c3c';
+                showStatus('Sub-controller firmware upload error', true);
+                resetSubUploadUI();
+            });
+            
+            xhr.addEventListener('abort', function() {
+                document.getElementById('subUploadStatus').textContent = 'Upload cancelled';
+                document.getElementById('subUploadStatus').style.color = '#6c757d';
+                resetSubUploadUI();
+            });
+            
+            // Send address as query parameter
+            const url = '/update-sub?address=' + address.toString(16);
+            xhr.open('POST', url);
+            xhr.send(formData);
+        }
+        
+        function resetSubUploadUI() {
+            setTimeout(() => {
+                document.getElementById('subUploadContent').style.display = 'block';
+                document.getElementById('subUploadProgress').style.display = 'none';
+                document.getElementById('subFirmwareFile').value = '';
+            }, 2000);
+        }
+        
+        // Drag and drop handlers for main controller
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFirmware(files[0]);
+            }
+        });
+        
+        // Drag and drop handlers for sub-controller
+        const subUploadArea = document.getElementById('subUploadArea');
+        
+        subUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            subUploadArea.classList.add('drag-over');
+        });
+        
+        subUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            subUploadArea.classList.remove('drag-over');
+        });
+        
+        subUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            subUploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadSubFirmware(files[0]);
+            }
+        });
+        
+        // Load config on page load
+        window.addEventListener('load', () => {
+            loadConfig();
+            loadWiFiConfig();
+            // Generate cell settings structure on load
+            generateCellSettings();
+        });
+    </script>
+</body>
+</html>"""
+myLength = len(myHtmlString)
+division = myLength/divideEvery
+print("number of divisions")
+print(division)
+
+carry = myLength%divideEvery
+print("characters in the last piece of string")
+print(carry)
+
+f = open("result.txt","w+")
+f.write("Below the string splitted \r\n")
+f.close()
+
+x=myHtmlString
+n=divideEvery
+myArray=[]
+for i in range(0,len(x),n):
+    myArray.append(x[i:i+n])
+#print(myArray)
+
+for item in myArray:
+    f = open('result.txt', 'a')
+    f.write(item+ '\nSPLITHERE\n'+ '\n')
+
+f.close()

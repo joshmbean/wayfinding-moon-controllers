@@ -1,0 +1,168 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 // ===============================================\
+// Moth "Flight" Patterns\
+// ===============================================\
+//\
+// API:\
+//\
+// void computeFlightPattern(uint8_t pattern,\
+//                           unsigned long elapsedMs,\
+//                           float &yawDeg,\
+//                           float &pitchDeg);\
+//\
+// pattern:    1..5  (which motion style)\
+// elapsedMs:  milliseconds since this pattern started\
+// yawDeg:     output yaw angle (left/right), -90..+90\
+// pitchDeg:   output pitch angle (forward/back), -45..+45\
+//\
+// You handle:\
+//   - when to switch patterns\
+//   - servo attach/write\
+//   - timing (using millis() etc.)\
+//\
+\
+// Limits (feel free to tweak)\
+const float YAW_MAX_DEG   = 90.0f;  // +/- 90\'b0\
+const float PITCH_MAX_DEG = 45.0f;  // +/- 45\'b0\
+\
+float clampf(float v, float mn, float mx) \{\
+  if (v < mn) return mn;\
+  if (v > mx) return mx;\
+  return v;\
+\}\
+\
+// Smoothstep easing (for the "drifty" pattern)\
+float smoothStep(float x) \{\
+  if (x <= 0.0f) return 0.0f;\
+  if (x >= 1.0f) return 1.0f;\
+  return x * x * (3.0f - 2.0f * x);\
+\}\
+\
+// ================== Pattern Implementations ==================\
+//\
+// Pattern 1: Gentle gliding\
+//  - Slow sweeping yaw, soft bobbing pitch\
+//\
+void pattern1_gentleGlide(float t, float &yawDeg, float &pitchDeg) \{\
+  // t in seconds\
+  float yaw   = 40.0f * sinf(TWO_PI * t / 10.0f);  // one big sweep every ~10s\
+  float pitch = 15.0f * sinf(TWO_PI * t / 5.0f + PI / 3.0f); // smaller/faster bob\
+\
+  yawDeg   = clampf(yaw,  -YAW_MAX_DEG,   YAW_MAX_DEG);\
+  pitchDeg = clampf(pitch, -PITCH_MAX_DEG, PITCH_MAX_DEG);\
+\}\
+\
+// Pattern 2: Banking & circling\
+//  - Feels like gentle banking turns\
+//\
+void pattern2_banking(float t, float &yawDeg, float &pitchDeg) \{\
+  float yaw   = 50.0f * sinf(TWO_PI * t / 12.0f)     // slow wide turn\
+              + 15.0f * sinf(TWO_PI * t / 3.0f);     // small wiggle\
+  float pitch = 20.0f * sinf(TWO_PI * t / 6.0f + PI/2.0f); // gentle bank/tilt\
+\
+  yawDeg   = clampf(yaw,  -YAW_MAX_DEG,   YAW_MAX_DEG);\
+  pitchDeg = clampf(pitch, -PITCH_MAX_DEG, PITCH_MAX_DEG);\
+\}\
+\
+// Pattern 3: Turbulent, but smooth\
+//  - Layered motion, like updrafts and buffets, but not jittery\
+//\
+void pattern3_turbulent(float t, float &yawDeg, float &pitchDeg) \{\
+  float yaw   = 30.0f * sinf(TWO_PI * t / 4.0f)   // medium sweep\
+              + 10.0f * sinf(TWO_PI * t / 1.0f);  // faster overlay\
+  float pitch = 20.0f * sinf(TWO_PI * t / 3.0f)\
+              +  8.0f * sinf(TWO_PI * t / 0.9f + PI/4.0f);\
+\
+  yawDeg   = clampf(yaw,  -YAW_MAX_DEG,   YAW_MAX_DEG);\
+  pitchDeg = clampf(pitch, -PITCH_MAX_DEG, PITCH_MAX_DEG);\
+\}\
+\
+// Pattern 4: Swooping dives and climbs\
+//  - Big pitch arcs, with yaw following more slowly\
+//\
+void pattern4_swoop(float t, float &yawDeg, float &pitchDeg) \{\
+  // Long swoop (~16s) layered with a shorter one (~8s)\
+  float pitch = 25.0f * sinf(TWO_PI * t / 8.0f);       // main dive/climb\
+  float yaw   = 35.0f * sinf(TWO_PI * t / 16.0f)       // slow turn\
+              + 10.0f * sinf(TWO_PI * t / 8.0f + PI/3.0f); // follow pitch a bit\
+\
+  yawDeg   = clampf(yaw,  -YAW_MAX_DEG,   YAW_MAX_DEG);\
+  pitchDeg = clampf(pitch, -PITCH_MAX_DEG, PITCH_MAX_DEG);\
+\}\
+\
+// Pattern 5: Restless hovering / drifting\
+//  - Mostly centered, small random-ish motions, very smooth\
+//\
+void pattern5_restless(unsigned long elapsedMs, float &yawDeg, float &pitchDeg) \{\
+  // Convert to seconds\
+  float t = elapsedMs / 1000.0f;\
+\
+  // Each "segment" lasts this many seconds before picking a new target\
+  const float segmentDuration = 2.5f; // new direction every ~2.5 seconds\
+  int segmentIndex = (int)(t / segmentDuration);\
+  float segmentT   = t - (float)segmentIndex * segmentDuration;  // 0..segmentDuration\
+  float frac       = segmentT / segmentDuration;                 // 0..1\
+  float eased      = smoothStep(frac);\
+\
+  // State for this pattern\
+  static int   lastSegmentIndex = -1;\
+  static float startYaw = 0.0f, endYaw = 0.0f;\
+  static float startPitch = 0.0f, endPitch = 0.0f;\
+\
+  if (segmentIndex != lastSegmentIndex) \{\
+    // New segment: shift end -> start, pick new end\
+    lastSegmentIndex = segmentIndex;\
+\
+    startYaw   = endYaw;\
+    startPitch = endPitch;\
+\
+    // New targets: small random offsets around center\
+    // Yaw drift up to +/- 25\'b0, pitch drift up to +/- 15\'b0\
+    endYaw   = (float)random(-25, 26);  // -25..+25\
+    endPitch = (float)random(-15, 16);  // -15..+15\
+  \}\
+\
+  float yaw   = startYaw   + (endYaw   - startYaw)   * eased;\
+  float pitch = startPitch + (endPitch - startPitch) * eased;\
+\
+  yawDeg   = clampf(yaw,  -YAW_MAX_DEG,   YAW_MAX_DEG);\
+  pitchDeg = clampf(pitch, -PITCH_MAX_DEG, PITCH_MAX_DEG);\
+\}\
+\
+// ================== Main entry point ==================\
+//\
+// pattern:    1..5\
+// elapsedMs:  ms since this pattern started\
+//\
+void computeFlightPattern(uint8_t pattern,\
+                          unsigned long elapsedMs,\
+                          float &yawDeg,\
+                          float &pitchDeg) \
+\{\
+  float t = elapsedMs / 1000.0f; // seconds\
+\
+  switch (pattern) \{\
+    case 1:\
+      pattern1_gentleGlide(t, yawDeg, pitchDeg);\
+      break;\
+    case 2:\
+      pattern2_banking(t, yawDeg, pitchDeg);\
+      break;\
+    case 3:\
+      pattern3_turbulent(t, yawDeg, pitchDeg);\
+      break;\
+    case 4:\
+      pattern4_swoop(t, yawDeg, pitchDeg);\
+      break;\
+    case 5:\
+    default:\
+      pattern5_restless(elapsedMs, yawDeg, pitchDeg);\
+      break;\
+  \}\
+\}}

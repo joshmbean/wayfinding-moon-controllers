@@ -1,0 +1,142 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #include <Arduino.h>\
+#include <Adafruit_TinyUSB.h>\
+#include <MIDI.h>\
+#include <WiFi.h>\
+#include <esp_now.h>\
+\
+// ==================== CONFIG YOU'LL TWEAK ====================\
+\
+// Drum hit velocity (channel 10)\
+const uint8_t DRUM_HIT_VELOCITY = 110;\
+\
+// Default velocity for channels 1-3 if Moon sends 0 pressure (fallback)\
+const uint8_t DEFAULT_MELODIC_VELOCITY = 90;\
+\
+// =============================================================\
+\
+// ==== TinyUSB MIDI setup ====\
+\
+Adafruit_USBD_MIDI usb_midi;\
+MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);\
+\
+// Forward declaration of handler\
+void handleMoonNoteEvent(uint8_t cellIndex, uint8_t action, uint8_t pressure);\
+\
+// ==== ESP-NOW message format (must match Moon side) ====\
+\
+enum NoteAction : uint8_t \{\
+  NOTE_PRESS   = 0,\
+  NOTE_RELEASE = 1\
+\};\
+\
+struct MoonNoteEvent \{\
+  uint8_t cellIndex;  // 0-79\
+  uint8_t action;     // NoteAction\
+  uint8_t pressure;   // 0-127\
+\};\
+\
+// This will be called by ESP-NOW when we receive data from the Moon\
+void onEspNowReceive(const uint8_t * mac, const uint8_t *incomingData, int len) \{\
+  if (len != sizeof(MoonNoteEvent)) return; // ignore unexpected sizes\
+\
+  MoonNoteEvent evt;\
+  memcpy(&evt, incomingData, sizeof(evt));\
+\
+  if (evt.cellIndex < NUM_CELLS) \{\
+    handleMoonNoteEvent(evt.cellIndex, evt.action, evt.pressure);\
+  \}\
+\}\
+\
+// ==== MIDI helper ====\
+\
+// Use your arrays from the spreadsheet\
+extern const uint8_t cellMidiChannel[NUM_CELLS];\
+extern const uint8_t cellMidiNote[NUM_CELLS];\
+\
+void sendMidiNoteOn(uint8_t channel, uint8_t note, uint8_t velocity) \{\
+  MIDI.sendNoteOn(note, velocity, channel);\
+\}\
+\
+void sendMidiNoteOff(uint8_t channel, uint8_t note) \{\
+  MIDI.sendNoteOff(note, 0, channel);\
+\}\
+\
+// Main handler: called whenever the Moon tells us about a press/release\
+void handleMoonNoteEvent(uint8_t cellIndex, uint8_t action, uint8_t pressure) \{\
+  uint8_t channel = cellMidiChannel[cellIndex];\
+  uint8_t note    = cellMidiNote[cellIndex];\
+\
+  // Use a sane fallback if Moon sends 0 pressure\
+  if (pressure == 0) \{\
+    pressure = (channel == 10) ? DRUM_HIT_VELOCITY : DEFAULT_MELODIC_VELOCITY;\
+  \}\
+\
+  if (action == NOTE_PRESS) \{\
+    if (channel == 10) \{\
+      // Drums: ignore pressure as a continuous control, just fixed-ish hit\
+      sendMidiNoteOn(channel, note, DRUM_HIT_VELOCITY);\
+      // Optional: send an immediate NoteOff for very short drums:\
+      // sendMidiNoteOff(channel, note);\
+    \} else \{\
+      // Channels 1-3: use pressure as velocity (0-127)\
+      sendMidiNoteOn(channel, note, pressure);\
+    \}\
+  \} else if (action == NOTE_RELEASE) \{\
+    // All channels: stop the note\
+    sendMidiNoteOff(channel, note);\
+  \}\
+\}\
+\
+// ==== Setup & loop ====\
+\
+void setup() \{\
+  // TinyUSB MIDI init\
+  if (!TinyUSBDevice.isInitialized()) \{\
+    TinyUSBDevice.begin(0);\
+  \}\
+\
+  Serial.begin(115200);\
+  usb_midi.setStringDescriptor("Wayfinding Moth MIDI");\
+\
+  // Initialize MIDI, listen on all channels (we mostly transmit)\
+  MIDI.begin(MIDI_CHANNEL_OMNI);\
+\
+  // Force re-enumeration so the computer sees this as a MIDI device\
+  if (TinyUSBDevice.mounted()) \{\
+    TinyUSBDevice.detach();\
+    delay(10);\
+    TinyUSBDevice.attach();\
+  \}\
+\
+  // ==== ESP-NOW init ====\
+  WiFi.mode(WIFI_STA);\
+\
+  if (esp_now_init() != ESP_OK) \{\
+    Serial.println("Error initializing ESP-NOW");\
+    return;\
+  \}\
+\
+  esp_now_register_recv_cb(onEspNowReceive);\
+\
+  Serial.println("Moth MIDI + ESP-NOW ready");\
+\}\
+\
+void loop() \{\
+#ifdef TINYUSB_NEED_POLLING_TASK\
+  TinyUSBDevice.task();\
+#endif\
+\
+  if (!TinyUSBDevice.mounted()) \{\
+    return; // not connected over USB yet\
+  \}\
+\
+  // If you want to listen to MIDI from Ableton you can still do:\
+  MIDI.read();\
+\}}
